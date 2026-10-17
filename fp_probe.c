@@ -16,7 +16,9 @@ static unsigned xorshift(void)
 
 int main(int argc, char **argv)
 {
-    int usePow = argc > 1 && strcmp(argv[1], "pow") == 0;
+    const char *mode = argc > 1 ? argv[1] : "cmp";
+    int usePow = strcmp(mode, "pow") == 0 || strcmp(mode, "x87pow") == 0;
+    int useX87 = strncmp(mode, "x87", 3) == 0;
     int secs = argc > 2 ? atoi(argv[2]) : 20;
     time_t deadline = time(NULL) + secs;
     volatile double zero = 0.0, one = 1.0;
@@ -28,7 +30,13 @@ int main(int argc, char **argv)
         {
             iters++;
             double r = (xorshift() | 1) / 4294967295.0;
-            double e = 1.0 / (2 + (iters % 7));
+            double e;
+#if defined(__x86_64__)
+            if (useX87)
+                e = (double)(1.0L / (2 + (long double)(iters % 7)));
+            else
+#endif
+                e = 1.0 / (2 + (iters % 7));
             if (usePow)
             {
                 volatile double p1 = pow(r, e);
@@ -48,6 +56,6 @@ int main(int argc, char **argv)
 #else
         "x86_64",
 #endif
-        usePow ? "pow" : "cmp", iters, powBad, cmpBad);
+        mode, iters, powBad, cmpBad);
     return 0;
 }
