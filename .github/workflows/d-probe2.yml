@@ -1,0 +1,31 @@
+name: d-probe2
+on: [push, workflow_dispatch]
+jobs:
+  probe:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compilers
+        run: |
+          curl -fsS https://dlang.org/d-keyring.gpg | gpg --import /dev/stdin
+          curl -fsS https://dlang.org/install.sh -o install.sh
+          bash install.sh -a dmd
+          bash install.sh -a ldc || true
+      - name: Build
+        run: |
+          source ~/dlang/dmd-*/activate
+          dmd -O -release -of=dmd_tls rosetta_fp.d
+          dmd -O -release -version=Gshared -of=dmd_gshared rosetta_fp.d
+          deactivate
+          source ~/dlang/ldc-*/activate
+          ldc2 -O -release -mtriple=x86_64-apple-macos -of=ldc_x86 rosetta_fp.d || echo "ldc x86 build failed"
+          file dmd_tls dmd_gshared ldc_x86 || true
+      - name: Run
+        run: |
+          for b in dmd_tls dmd_gshared ldc_x86; do
+            test -x $b || continue
+            for m in sse libm; do
+              for i in 1 2 3 4 5 6; do (./$b $m 60 | sed "s/^/$b /") & done
+              wait
+            done
+          done

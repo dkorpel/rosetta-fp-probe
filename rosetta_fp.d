@@ -6,7 +6,8 @@ import std.math.exponential : pow;
 import std.math.operations : nextafter;
 import std.math.traits : isNaN;
 
-uint state = 1234;
+version (Gshared) __gshared uint state = 1234;
+else uint state = 1234;
 
 uint xorshift()
 {
