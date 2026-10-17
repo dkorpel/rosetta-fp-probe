@@ -1,0 +1,18 @@
+name: c-probe
+on: [push, workflow_dispatch]
+jobs:
+  probe:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          sysctl -n machdep.cpu.brand_string hw.ncpu
+          clang -O2 -arch arm64 -o probe_arm64 fp_probe.c
+          clang -O2 -arch x86_64 -o probe_x86 fp_probe.c
+      - name: Native arm64
+        run: |
+          for m in pow cmp; do for i in 1 2 3 4 5 6; do ./probe_arm64 $m 90 & done; wait; done
+      - name: x86_64 under Rosetta
+        run: |
+          for m in pow cmp; do for i in 1 2 3 4 5 6; do ./probe_x86 $m 90 & done; wait; done

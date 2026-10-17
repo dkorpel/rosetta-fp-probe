@@ -1,5 +1,5 @@
 name: rosetta-fp
-on: [push, workflow_dispatch]
+on: [workflow_dispatch]
 jobs:
   probe:
     strategy:
@@ -29,7 +29,6 @@ jobs:
             wait
           done
       - name: Loop std.random unittest
-        if: hashFiles('random_ut') != '' || true
         run: |
           test -x random_ut || exit 0
           fail=0
